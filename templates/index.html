@@ -6,13 +6,10 @@
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
     <title>Item Manager</title>
     <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css' rel='stylesheet'>
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
     <script src='https://code.jquery.com/jquery-3.6.0.min.js'></script>
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
 </head>
 
 <body class='container mt-5'>
-
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
         <a class="navbar-brand" href="#">Item Manager</a>
@@ -27,52 +24,82 @@
             </ul>
         </div>
     </nav>
-
     <h2 class='mb-4'>Item Manager</h2>
-
-    <table id="itemTable" class='table table-bordered'>
-        <thead>
-            <tr>
-                <th>SKU</th>
-                <th>Description</th>
-                <th>Retail Price</th>
-                <th>Quantity</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-
+    <div class='row'>
+        <div class='col-md-6 warehouse-stock'>
+            <h3>Warehouse Stock</h3>
+            <table class='table table-bordered'>
+                <thead>
+                    <tr>
+                        <th>SKU</th>
+                        <th>Description</th>
+                        <th>Retail Price</th>
+                        <th>Warehouse Qnt</th>
+                        <th>Transfer Qnt</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id='itemTable1'></tbody>
+            </table>
+        </div>
+        <div class='col-md-6 shop-stock'>
+            <h3>Shop Stock</h3>
+            <table class='table table-bordered'>
+                <thead>
+                    <tr>
+                        <th>SKU</th>
+                        <th>Description</th>
+                        <th>Retail Price</th>
+                        <th>Item Qnt</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id='itemTable2'></tbody>
+            </table>
+        </div>
+    </div>
     <h3>Add Item</h3>
     <input type='text' id='sku' placeholder='SKU' class='form-control mb-2'>
     <input type='text' id='description' placeholder='Description' class='form-control mb-2'>
-    <input type='number' step="0.01" id='retail_price' placeholder='Retail Price' class='form-control mb-2'>
+    <input type='number' step='0.01' id='retail_price' placeholder='Retail Price' class='form-control mb-2'>
     <input type='number' id='quantity' placeholder='Quantity' class='form-control mb-2'>
     <button id='addItem' class='btn btn-primary'>Add</button>
-
     <script>
         function getCSRFToken() {
-            return document.cookie.split('; ')
-                .find(row => row.startsWith('csrftoken='))
-                ?.split('=')[1];
+            return document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
         }
 
-        let table;
-
-        function fetchItems() {
-            $.get('/api/items/', function (data) {
-                table.clear();  // Clear existing data
+        function fetchItems(tableNum) {
+            let apiUrl = tableNum === 1 ? '/api/items/' : '/api/shop_items/';
+            $.get(apiUrl, function (data) {
+                tableNum === 1 ? $('#itemTable1').empty() : $('#itemTable2').empty();
                 data.forEach(item => {
-                    table.row.add([
-                        item.sku,
-                        `<input type='text' value='${item.description}' class='form-control' id='description-${item.sku}'>`,
-                        `<input type='text' value='${item.retail_price}' class='form-control' id='retail_price-${item.sku}'>`,
-                        `<input type='number' value='${item.quantity}' class='form-control' id='quantity-${item.sku}'>`,
-                        `<button onclick='updateItem("${item.sku}")' class='btn btn-warning btn-sm'>Update</button>
-                         <button onclick='deleteItem("${item.sku}")' class='btn btn-danger btn-sm'>Delete</button>`
-                    ]);
+                    let row1 = `
+                        <tr>
+                            <td>${item.sku}</td>
+                            <td><input type='text' value='${item.description}' class='form-control' id='description1-${item.sku}'></td>
+                            <td><input type='text' value='${item.retail_price}' class='form-control' id='retail_price1-${item.sku}'></td>
+                            <td><input type='number' value='${item.quantity}' class='form-control' id='quantity1-${item.sku}'></td>
+                            <td><input type='number' value='0' class='form-control' id='xfer_quantity1-${item.sku}'></td>
+                            <td>
+                                <button onclick='updateItem("${item.sku}", 1)' class='btn btn-warning'>Update</button>
+                                <button onclick='deleteItem("${item.sku}", 1)' class='btn btn-danger'>Delete</button>
+                                <button onclick='transferItem("${item.sku}")' class='btn btn-info'>Transfer</button>
+                            </td>
+                        </tr>`;
+                    let row2 = `
+                        <tr>
+                            <td>${item.sku}</td>
+                            <td><input type='text' value='${item.description}' class='form-control' id='description2-${item.sku}'></td>
+                            <td><input type='text' value='${item.retail_price}' class='form-control' id='retail_price2-${item.sku}'></td>
+                            <td><input type='number' value='${item.quantity}' class='form-control' id='quantity2-${item.sku}'></td>
+                            <td>
+                                <button onclick='updateItem("${item.sku}", 2)' class='btn btn-warning'>Update</button>
+                                <button onclick='deleteItem("${item.sku}", 2)' class='btn btn-danger'>Delete</button>
+                            </td>
+                        </tr>`;
+                    tableNum === 1 ? $('#itemTable1').append(row1) : $('#itemTable2').append(row2);
                 });
-                table.draw();  // Redraw the table
             });
         }
 
@@ -89,38 +116,58 @@
                     quantity: $('#quantity').val()
                 }),
                 success: function () {
-                    fetchItems();
-                    $('#sku').val('');
-                    $('#description').val('');
-                    $('#retail_price').val('');
-                    $('#quantity').val('');
+                    fetchItems(1);
+                    fetchItems(2);
                 }
             });
         }
 
-        function updateItem(sku) {
+        function transferItem(sku) {
+            console.log($(`#xfer_quantity1-${sku}`).val())
+        }
+
+        function updateItem(sku, tableNum) {
+            let apiUrl = tableNum === 1 ? `/api/items/${sku}/` : `/api/shop_items/${sku}/`;
             $.ajax({
-                url: `/api/items/${sku}/`,
+                url: apiUrl,
                 type: 'PUT',
                 contentType: 'application/json',
                 headers: { 'X-CSRFToken': getCSRFToken() },
                 data: JSON.stringify({
                     sku: sku,
-                    description: $(`#description-${sku}`).val(),
-                    retail_price: $(`#retail_price-${sku}`).val(),
-                    quantity: $(`#quantity-${sku}`).val()
+                    description: $(`#description${tableNum}-${sku}`).val(),
+                    retail_price: $(`#retail_price${tableNum}-${sku}`).val(),
+                    quantity: $(`#quantity${tableNum}-${sku}`).val()
                 }),
-                success: fetchItems
+                success: function () {
+                    fetchItems(1);
+                    fetchItems(2);
+                }
             });
         }
 
-        function deleteItem(sku) {
+        function deleteItem(sku, tableNum) {
+            let apiUrl = tableNum === 1 ? `/api/items/${sku}/` : `/api/shop_items/${sku}/`;
+            console.log(apiUrl)
             $.ajax({
-                url: `/api/items/${sku}/`,
+                url: apiUrl,
                 type: 'DELETE',
                 headers: { 'X-CSRFToken': getCSRFToken() },
-                success: fetchItems
+                success: function () {
+                    fetchItems(1);
+                    fetchItems(2);
+                }
             });
+        }
+
+        function tailor_dashboard(groups) {
+            if (groups && groups.includes("managers")) {
+                $(".shop-stock").hide();
+                $(".warehouse-stock").addClass("col-md-12");
+                $(".warehouse-stock").removeClass("col-md-6");
+            } else {
+                $(".shop-stock").show();
+            }
         }
 
         function checkAuthStatus() {
@@ -131,30 +178,41 @@
                 success: function (data) {
                     if (data.username) {
                         $("#userStatus").text(`Logged in as: ${data.username}`);
-                        $("#authLink").attr("href", "/accounts/logout/").text("Logout");
+                        tailor_dashboard(data.groups)
+                        $("#authLink").text("Logout").off("click").on("click", function (event) {
+                            event.preventDefault();
+                            $.ajax({
+                                url: "/accounts/logout/",
+                                type: "POST",
+                                headers: { "X-CSRFToken": getCSRFToken() },
+                                success: function () {
+                                    location.reload();
+                                },
+                                error: function (xhr, status, error) {
+                                    console.error("Logout failed:", xhr.responseText);
+                                }
+                            });
+                        });
                     } else {
                         $("#userStatus").text("");
                         $("#authLink").attr("href", "/accounts/login/").text("Login");
                     }
                 },
                 error: function (xhr, status, error) {
-                    console.error("Auth check failed:", xhr.responseText);  // Debugging
+                    console.error("Auth check failed:", xhr.responseText);
                     $("#userStatus").text("");
                     $("#authLink").attr("href", "/accounts/login/").text("Login");
                 }
             });
         }
 
-        $(document).ready(function () {
-            checkAuthStatus();  // Check authentication on page load
-        });
 
 
 
         $(document).ready(function () {
-            table = $('#itemTable').DataTable();  // Initialize DataTables
-            fetchItems();
             checkAuthStatus();
+            fetchItems(1);
+            fetchItems(2);
             $('#addItem').click(addItem);
         });
     </script>

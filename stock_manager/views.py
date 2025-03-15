@@ -1,12 +1,15 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-from .models import Item
-from .serializers import ItemSerializer
+from .models import Item, ShopItem
+from .serializers import ItemSerializer, ShopItemSerializer
 from django.contrib.auth.models import User  # For accessing the User model
 from rest_framework.response import Response  # For returning HTTP responses in REST framework
 from rest_framework.decorators import api_view
+from rest_framework.pagination import PageNumberPagination
+
+
 
 # API View
 class ItemViewSet(viewsets.ModelViewSet):
@@ -14,6 +17,17 @@ class ItemViewSet(viewsets.ModelViewSet):
     serializer_class = ItemSerializer
     lookup_field = 'sku'
     permission_classes = [IsAuthenticated]
+    pagination_class = PageNumberPagination
+
+class ShopItemViewSet(viewsets.ModelViewSet):
+    queryset = ShopItem.objects.all()
+    serializer_class = ShopItemSerializer
+    lookup_field = 'sku'
+    permission_classes = [IsAuthenticated]
+    pagination_class = PageNumberPagination
+
+    def get_queryset(self):
+        return ShopItem.objects.filter(shop_user=self.request.user)
 
 # Main Page View
 @login_required
@@ -31,4 +45,5 @@ def get_user(request):
         'id': user.id,
         'username': user.username,
         'email': user.email,
+        'groups': list(user.groups.values_list('name', flat=True)),
     })
