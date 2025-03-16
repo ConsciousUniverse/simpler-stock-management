@@ -28,15 +28,15 @@
     <div class='row'>
         <div class='col-md-6 warehouse-stock'>
             <h3>Warehouse Stock</h3>
-            <input type="text" id="searchBox1" class="form-control mb-2" placeholder="Search Warehouse Items...">
-            <button onclick="fetchItems(1, 1, $('#searchBox1').val())" class="btn btn-primary">Search</button>
+            <input type="text" id="searchBox1" class="form-control mb-2" placeholder="Search Warehouse Items..."
+                onkeyup="fetchItems(1, 1, this.value)">
             <table class='table table-bordered'>
                 <thead>
                     <tr>
-                        <th>SKU</th>
-                        <th>Description</th>
-                        <th>Retail Price</th>
-                        <th>Warehouse Qnt</th>
+                        <th onclick="sortTable(1, 'sku')">SKU</th>
+                        <th onclick="sortTable(1, 'description')">Description</th>
+                        <th onclick="sortTable(1, 'retail_price')">Retail Price</th>
+                        <th onclick="sortTable(1, 'quantity')">Warehouse Qnt</th>
                         <th>Transfer Qnt</th>
                         <th>Actions</th>
                     </tr>
@@ -47,15 +47,15 @@
         </div>
         <div class='col-md-6 shop-stock'>
             <h3>Shop Stock</h3>
-            <input type="text" id="searchBox2" class="form-control mb-2" placeholder="Search Shop Items...">
-            <button onclick="fetchItems(2, 1, $('#searchBox2').val())" class="btn btn-primary">Search</button>
+            <input type="text" id="searchBox2" class="form-control mb-2" placeholder="Search Shop Items..."
+                onkeyup="fetchItems(2, 1, this.value)">
             <table class='table table-bordered'>
                 <thead>
                     <tr>
-                        <th>SKU</th>
-                        <th>Description</th>
-                        <th>Retail Price</th>
-                        <th>Item Qnt</th>
+                        <th onclick="sortTable(2, 'sku')">SKU</th>
+                        <th onclick="sortTable(2, 'description')">Description</th>
+                        <th onclick="sortTable(2, 'retail_price')">Retail Price</th>
+                        <th onclick="sortTable(2, 'quantity')">Item Qnt</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -75,9 +75,19 @@
             return document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
         }
 
-        function fetchItems(tableNum, page = 1, searchQuery = '') {
+        function sortTable(tableNum, column) {
+            let currentOrder = $(`#table${tableNum}`).data('sortOrder') || 'asc';
+            let newOrder = currentOrder === 'asc' ? 'desc' : 'asc';
+            $(`#table${tableNum}`).data('sortOrder', newOrder);
+            fetchItems(tableNum, 1, $(`#searchBox${tableNum}`).val(), column, newOrder);
+        }
+
+        function fetchItems(tableNum, page = 1, searchQuery = '', sortColumn = '', sortOrder = '') {
             let apiUrl = tableNum === 1 ? '/api/items/' : '/api/shop_items/';
             apiUrl += `?page=${page}&search=${encodeURIComponent(searchQuery)}`;
+            if (sortColumn) {
+                apiUrl += `&ordering=${sortOrder === 'asc' ? '' : '-'}${sortColumn}`;
+            }
 
             $.get(apiUrl, function (data) {
                 let tableBody = tableNum === 1 ? $('#itemTable1') : $('#itemTable2');
@@ -118,7 +128,9 @@
             }
 
             if (data.next_page_number) {
-                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick='fetchItems(${tableNum}, ${data.next_page_number}, $("#searchBox${tableNum}").val())'>Next</a></li>`;
+                if (data.next_page_number) {
+                    paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick='fetchItems(${tableNum}, ${data.next_page_number}, $("#searchBox${tableNum}").val())'>Next</a></li>`;
+                }
             }
 
             paginationHtml += '</ul></nav>';
@@ -228,9 +240,6 @@
                 }
             });
         }
-
-
-
 
         $(document).ready(function () {
             checkAuthStatus();

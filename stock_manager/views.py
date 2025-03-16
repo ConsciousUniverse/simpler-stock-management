@@ -27,7 +27,11 @@ class ItemViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(
                 description__icontains=search_query
             )  # 🔍 Search filter
-        queryset = queryset.order_by('sku')
+        ordering = self.request.query_params.get("ordering", None)
+        if ordering:
+            queryset = queryset.order_by(ordering)
+        else:
+            queryset = queryset.order_by('sku')
         return queryset
 
 
@@ -45,7 +49,11 @@ class ShopItemViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(
                 description__icontains=search_query
             )  # 🔍 Search filter
-        queryset = queryset.order_by('sku')
+        ordering = self.request.query_params.get("ordering", None)
+        if ordering:
+            queryset = queryset.order_by(ordering)
+        else:
+            queryset = queryset.order_by('sku')
         return queryset
 
 
