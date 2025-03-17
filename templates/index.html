@@ -30,7 +30,7 @@
             <h3>Warehouse Stock</h3>
             <div class="d-flex justify-content-between mb-2">
                 <input type="text" id="searchBox1" class="form-control" placeholder="Search Warehouse Items..." onkeyup="fetchItems(1, 1, this.value)">
-                <button id="updateModeToggle" class="btn btn-warning ms-2 d-none" onclick="toggleUpdateMode()">Update Mode: Off</button>
+                <button id="updateModeToggle" class="btn btn-warning ms-2 d-none" onclick="toggleUpdateMode()"></button>
             </div>
             <table class='table table-bordered'>
                 <thead>
@@ -87,6 +87,10 @@
             fetchItems(tableNum, 1, $(`#searchBox${tableNum}`).val(), column, newOrder);
         }
 
+        function setUpdateModeButtonText(isUpdateModeOn) {
+            $('#updateModeToggle').text(isUpdateModeOn ? 'Leave Update Mode' : 'Enter Update Mode');
+        }
+
         function fetchItems(tableNum, page = 1, searchQuery = '', sortColumn = '', sortOrder = '') {
             let apiUrl = tableNum === 1 ? '/api/items/' : '/api/shop_items/';
             apiUrl += `?page=${page}&search=${encodeURIComponent(searchQuery)}`;
@@ -98,7 +102,7 @@
                 let tableBody = tableNum === 1 ? $('#itemTable1') : $('#itemTable2');
                 tableBody.empty();
 
-                const isUpdateModeOn = $('#updateModeToggle').text().includes('On');
+                const isUpdateModeOn = $('#updateModeToggle').text().includes('Leave');
                 data.results.forEach(item => {
                     let row;
                     if (tableNum === 1) {
@@ -269,8 +273,8 @@
 
         function toggleUpdateMode() {
             const updateModeButton = $('#updateModeToggle');
-            const isUpdateModeOn = updateModeButton.text().includes('On');
-            updateModeButton.text(`Update Mode: ${isUpdateModeOn ? 'Off' : 'On'}`);
+            const isUpdateModeOn = updateModeButton.text().includes('Leave');
+            setUpdateModeButtonText(!isUpdateModeOn);
             $.ajax({
                 url: '/api/toggle_update_mode/',
                 type: 'POST',
@@ -303,8 +307,7 @@
                     url: '/api/get_edit_lock_status/',
                     type: 'GET',
                     success: function (response) {
-                        const isUpdateModeOn = response.edit_lock;
-                        $('#updateModeToggle').text(`Update Mode: ${isUpdateModeOn ? 'On' : 'Off'}`);
+                        setUpdateModeButtonText(response.edit_lock);
                     },
                     error: function (xhr) {
                         console.error("Failed to fetch edit lock status:", xhr.responseText);
