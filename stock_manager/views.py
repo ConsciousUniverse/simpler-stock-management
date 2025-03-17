@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-from .models import Item, ShopItem
+from .models import Item, ShopItem, Admin
 from .serializers import ItemSerializer, ShopItemSerializer
 from .pagination import CustomPagination
 from django.contrib.auth.models import User  # For accessing the User model
@@ -16,7 +16,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.decorators import action
+import logging
 
+logger = logging.getLogger(__name__)
 
 # API View
 class ItemViewSet(viewsets.ModelViewSet):
@@ -107,21 +109,51 @@ def get_user(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def transfer_item(request):
+    if Admin.objects.first().edit_lock:
+        logger.debug("Transfer attempt while update mode is enabled.")
+        return Response({"detail": "Transfers are disabled in update mode."}, status=status.HTTP_403_FORBIDDEN)
+
     if not request.user.groups.filter(name='shop_users').exists():
+        logger.debug("Permission denied: user is not in shop_users group.")
         return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
 
-    sku = request.data.get("sku")
-    transfer_quantity = int(request.data.get("transfer_quantity", 0))
+    if request.session.get('update_mode', False):
+        logger.debug("Transfer attempt while update mode is enabled.")
+        return Response({"detail": "Transfers are disabled in update mode."}, status=status.HTTP_403_FORBIDDEN)
 
+    sku = request.data.get("sku")
+    transfer_quantity = request.data.get("transfer_quantity")
+
+    if not transfer_quantity.isdigit():
+        logger.debug("Invalid transfer quantity: not an integer.")
+        return Response({"detail": "Transfer quantity must be an integer."}, status=status.HTTP_400_BAD_REQUEST)
+
+    transfer_quantity = int(transfer_quantity)
     if transfer_quantity <= 0:
+        logger.debug("Invalid transfer quantity: less than or equal to zero.")
         return Response({"detail": "Transfer quantity must be greater than zero."}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
         item = Item.objects.get(sku=sku)
         item.transfer_to_shop(request.user, transfer_quantity)
     except Item.DoesNotExist:
+        logger.debug("Item not found: sku=%s", sku)
         return Response({"detail": "Item not found."}, status=status.HTTP_404_NOT_FOUND)
     except ValueError as e:
+        logger.debug("ValueError during transfer: %s", str(e))
         return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+    logger.debug("Transfer successful: sku=%s, quantity=%d", sku, transfer_quantity)
     return Response({"detail": "Transfer successful."}, status=status.HTTP_200_OK)
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def toggle_update_mode(request):
+    if not request.user.groups.filter(name='managers').exists():
+        return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+
+    update_mode = request.data.get("update_mode", False)
+    admin, created = Admin.objects.get_or_create(id=1)
+    admin.edit_lock = update_mode
+    admin.save()
+    return Response({"detail": f"Update mode {'enabled' if update_mode else 'disabled'}."}, status=status.HTTP_200_OK)

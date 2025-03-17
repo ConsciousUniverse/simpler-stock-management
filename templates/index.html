@@ -28,8 +28,10 @@
     <div class='row'>
         <div class='col-12 warehouse-stock mb-4'>
             <h3>Warehouse Stock</h3>
-            <input type="text" id="searchBox1" class="form-control mb-2" placeholder="Search Warehouse Items..."
-                onkeyup="fetchItems(1, 1, this.value)">
+            <div class="d-flex justify-content-between mb-2">
+                <input type="text" id="searchBox1" class="form-control" placeholder="Search Warehouse Items..." onkeyup="fetchItems(1, 1, this.value)">
+                <button id="updateModeToggle" class="btn btn-secondary ms-2 d-none" onclick="toggleUpdateMode()">Update Mode: Off</button>
+            </div>
             <table class='table table-bordered'>
                 <thead>
                     <tr>
@@ -96,19 +98,20 @@
                 let tableBody = tableNum === 1 ? $('#itemTable1') : $('#itemTable2');
                 tableBody.empty();
 
+                const isUpdateModeOn = $('#updateModeToggle').text().includes('On');
                 data.results.forEach(item => {
                     let row;
                     if (tableNum === 1) {
-                        let descriptionField = window.userGroups && window.userGroups.includes("managers") ? 
+                        let descriptionField = window.userGroups && window.userGroups.includes("managers") && isUpdateModeOn ? 
                             `<input type='text' value='${item.description}' class='form-control' id='description${tableNum}-${item.sku}'>` : 
                             item.description;
-                        let retailPriceField = window.userGroups && window.userGroups.includes("managers") ? 
-                            `<input type='text' value='${item.retail_price}' class='form-control' id='retail_price${tableNum}-${item.sku}'>` : 
-                            item.retail_price;
-                        let quantityField = window.userGroups && window.userGroups.includes("managers") ? 
+                        let retailPriceField = window.userGroups && window.userGroups.includes("managers") && isUpdateModeOn ? 
+                            `<input type='text' value='${parseFloat(item.retail_price).toFixed(2)}' class='form-control' id='retail_price${tableNum}-${item.sku}'>` : 
+                            parseFloat(item.retail_price).toFixed(2);
+                        let quantityField = window.userGroups && window.userGroups.includes("managers") && isUpdateModeOn ? 
                             `<input type='number' value='${item.quantity}' class='form-control' id='quantity${tableNum}-${item.sku}'>` : 
                             item.quantity;
-                        let transferQuantityField = window.userGroups && window.userGroups.includes("shop_users") ? 
+                        let transferQuantityField = window.userGroups && window.userGroups.includes("shop_users") && !isUpdateModeOn ? 
                             `<input type='number' value='0' class='form-control' id='xfer_quantity1-${item.sku}'>` : 
                             '';
 
@@ -118,7 +121,7 @@
                     <td>${descriptionField}</td>
                     <td>${retailPriceField}</td>
                     <td>${quantityField}</td>
-                    ${window.userGroups && window.userGroups.includes("shop_users") ? `<td>${transferQuantityField}</td>` : ''}
+                    ${window.userGroups && window.userGroups.includes("shop_users") && !isUpdateModeOn ? `<td>${transferQuantityField}</td>` : ''}
                     <td class="actions"></td>
                 </tr>`;
                     } else {
@@ -126,25 +129,25 @@
                 <tr>
                     <td>${item.item.sku}</td>
                     <td>${item.item.description}</td>
-                    <td>${item.item.retail_price}</td>
+                    <td>${parseFloat(item.item.retail_price).toFixed(2)}</td>
                     <td>${item.quantity}</td>
                     <td></td>
                 </tr>`;
                     }
                     tableBody.append(row);
 
-                    // Show update and delete buttons only for managers
-                    if (tableNum === 1 && window.userGroups && window.userGroups.includes("managers")) {
+                    // Show update and delete buttons only for managers in update mode
+                    if (tableNum === 1 && window.userGroups && window.userGroups.includes("managers") && isUpdateModeOn) {
                         $(`#itemTable1 tr:last .actions`).append(`
                             <button onclick='updateItem("${item.sku}", ${tableNum})' class='btn btn-warning'>Update</button>
                             <button onclick='deleteItem("${item.sku}", ${tableNum})' class='btn btn-danger'>Delete</button>
                         `);
                     }
 
-                    // Show transfer button only for shop_users
-                    if (tableNum === 1 && window.userGroups && window.userGroups.includes("shop_users")) {
+                    // Show transfer button only for shop_users when update mode is off
+                    if (tableNum === 1 && window.userGroups && window.userGroups.includes("shop_users") && !isUpdateModeOn) {
                         $(`#itemTable1 tr:last .actions`).append(`
-                            <button onclick='transferItem("${item.sku}")' class='btn btn-info'>Transfer</button>
+                            <button onclick='transferItem("${item.sku}")' class='btn btn-info' ${isUpdateModeOn ? 'disabled' : ''}>Transfer</button>
                         `);
                     }
                 });
@@ -182,6 +185,11 @@
         }
 
         function addItem() {
+            let retailPrice = $('#retail_price').val();
+            if (!/^\d+(\.\d{1,2})?$/.test(retailPrice)) {
+                alert('Retail price must be a valid number with up to 2 decimal places.');
+                return;
+            }
             $.ajax({
                 url: '/api/items/',
                 type: 'POST',
@@ -201,10 +209,13 @@
         }
 
         function updateItem(sku, tableNum) {
+            let price = $(`#retail_price${tableNum}-${sku}`).val();
+            if (!/^\d+(\.\d{1,2})?$/.test(price)) {
+                alert('Retail price must be a valid number with up to 2 decimal places.');
+                return;
+            }
             let qnt = $(`#quantity${tableNum}-${sku}`).val()
-            let tranfer_qnt = $(`#xfer_quantity1-${sku}`).val()
             let desc = $(`#description${tableNum}-${sku}`).val()
-            let price = $(`#retail_price${tableNum}-${sku}`).val()
             let apiUrl = tableNum === 1 ? `/api/items/${sku}/` : `/api/shop_items/${sku}/`;
             $.ajax({
                 url: apiUrl,
@@ -256,6 +267,29 @@
             });
         }
 
+        function toggleUpdateMode() {
+            const updateModeButton = $('#updateModeToggle');
+            const isUpdateModeOn = updateModeButton.text().includes('On');
+            updateModeButton.text(`Update Mode: ${isUpdateModeOn ? 'Off' : 'On'}`);
+            $.ajax({
+                url: '/api/toggle_update_mode/',
+                type: 'POST',
+                contentType: 'application/json',
+                headers: { 'X-CSRFToken': getCSRFToken() },
+                data: JSON.stringify({
+                    update_mode: !isUpdateModeOn
+                }),
+                success: function (response) {
+                    fetchItems(1);
+                    if (response.edit_lock) {
+                        $('.btn-info').attr('disabled', true);
+                    } else {
+                        $('.btn-info').attr('disabled', false);
+                    }
+                }
+            });
+        }
+
         function tailor_dashboard(groups) {
             window.userGroups = groups;  // Store user groups globally
             if (groups && groups.includes("managers")) {
@@ -263,6 +297,7 @@
                 $(".warehouse-stock").addClass("col-md-12");
                 $(".warehouse-stock").removeClass("col-md-6");
                 $("#addItemSection").removeClass("d-none");
+                $("#updateModeToggle").removeClass("d-none");
             } else {
                 $(".shop-stock").show();
             }
