@@ -105,7 +105,7 @@
                     <td>
                         ${tableNum === 1 ? `<button onclick='updateItem("${item.sku}", ${tableNum})' class='btn btn-warning'>Update</button>` : ''}
                         ${tableNum === 1 ? `<button onclick='deleteItem("${item.sku}", ${tableNum})' class='btn btn-danger'>Delete</button>` : ''}
-                        ${tableNum === 1 ? `<button onclick='updateItem("${item.sku}", ${tableNum})' class='btn btn-info'>Transfer</button>` : ''}
+                        ${tableNum === 1 ? `<button onclick='transferItem("${item.sku}")' class='btn btn-info'>Transfer</button>` : ''}
                     </td>
                 </tr>`;
                     tableBody.append(row);
@@ -193,6 +193,27 @@
                 headers: { 'X-CSRFToken': getCSRFToken() },
                 success: function () {
                     fetchItems(1);
+                }
+            });
+        }
+
+        function transferItem(sku) {
+            let transferQuantity = $(`#xfer_quantity1-${sku}`).val();
+            $.ajax({
+                url: '/api/transfer/',
+                type: 'POST',
+                contentType: 'application/json',
+                headers: { 'X-CSRFToken': getCSRFToken() },
+                data: JSON.stringify({
+                    sku: sku,
+                    transfer_quantity: transferQuantity
+                }),
+                success: function () {
+                    fetchItems(1);
+                    fetchItems(2);
+                },
+                error: function (xhr) {
+                    alert(xhr.responseJSON.detail);
                 }
             });
         }

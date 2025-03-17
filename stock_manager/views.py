@@ -11,6 +11,10 @@ from rest_framework.response import (
 )  # For returning HTTP responses in REST framework
 from rest_framework.decorators import api_view
 from django.db.models.functions import Lower
+from rest_framework.decorators import permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
+from rest_framework.exceptions import ValidationError
 
 
 # API View
@@ -87,3 +91,26 @@ def get_user(request):
             "groups": list(user.groups.values_list("name", flat=True)),
         }
     )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def transfer_item(request):
+    if not request.user.groups.filter(name='shop_users').exists():
+        return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+
+    sku = request.data.get("sku")
+    transfer_quantity = int(request.data.get("transfer_quantity", 0))
+
+    if transfer_quantity <= 0:
+        return Response({"detail": "Transfer quantity must be greater than zero."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        item = Item.objects.get(sku=sku)
+        item.transfer_to_shop(request.user, transfer_quantity)
+    except Item.DoesNotExist:
+        return Response({"detail": "Item not found."}, status=status.HTTP_404_NOT_FOUND)
+    except ValueError as e:
+        return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    return Response({"detail": "Transfer successful."}, status=status.HTTP_200_OK)
