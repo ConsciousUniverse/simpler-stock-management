@@ -7,6 +7,7 @@ class Item(models.Model):
     description = models.CharField(max_length=250)
     retail_price = models.FloatField()
     quantity = models.IntegerField()
+    xfer_pending = models.BooleanField(default=False)
     last_updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -19,6 +20,7 @@ class ShopItem(models.Model):
     description = models.CharField(max_length=250)
     retail_price = models.FloatField()
     quantity = models.IntegerField()
+    xfer_pending = models.BooleanField(default=False)
     last_updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):

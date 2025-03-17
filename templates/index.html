@@ -103,9 +103,9 @@
                     <td><input type='number' value='${item.quantity}' class='form-control' id='quantity${tableNum}-${item.sku}'></td>
                     ${tableNum === 1 ? `<td><input type='number' value='0' class='form-control' id='xfer_quantity1-${item.sku}'></td>` : ''}
                     <td>
-                        <button onclick='updateItem("${item.sku}", ${tableNum})' class='btn btn-warning'>Update</button>
-                        <button onclick='deleteItem("${item.sku}", ${tableNum})' class='btn btn-danger'>Delete</button>
-                        ${tableNum === 1 ? `<button onclick='transferItem("${item.sku}")' class='btn btn-info'>Transfer</button>` : ''}
+                        ${tableNum === 1 ? `<button onclick='updateItem("${item.sku}", ${tableNum})' class='btn btn-warning'>Update</button>` : ''}
+                        ${tableNum === 1 ? `<button onclick='deleteItem("${item.sku}", ${tableNum})' class='btn btn-danger'>Delete</button>` : ''}
+                        ${tableNum === 1 ? `<button onclick='updateItem("${item.sku}", ${tableNum})' class='btn btn-info'>Transfer</button>` : ''}
                     </td>
                 </tr>`;
                     tableBody.append(row);
@@ -162,11 +162,11 @@
             });
         }
 
-        function transferItem(sku) {
-            console.log($(`#xfer_quantity1-${sku}`).val())
-        }
-
         function updateItem(sku, tableNum) {
+            let qnt = $(`#quantity${tableNum}-${sku}`).val()
+            let tranfer_qnt = $(`#xfer_quantity1-${sku}`).val()
+            let desc = $(`#description${tableNum}-${sku}`).val()
+            let price = $(`#retail_price${tableNum}-${sku}`).val()
             let apiUrl = tableNum === 1 ? `/api/items/${sku}/` : `/api/shop_items/${sku}/`;
             $.ajax({
                 url: apiUrl,
@@ -175,9 +175,9 @@
                 headers: { 'X-CSRFToken': getCSRFToken() },
                 data: JSON.stringify({
                     sku: sku,
-                    description: $(`#description${tableNum}-${sku}`).val(),
-                    retail_price: $(`#retail_price${tableNum}-${sku}`).val(),
-                    quantity: $(`#quantity${tableNum}-${sku}`).val()
+                    description: desc,
+                    retail_price: price,
+                    quantity: qnt
                 }),
                 success: function () {
                     fetchItems(tableNum);
@@ -187,14 +187,12 @@
 
         function deleteItem(sku, tableNum) {
             let apiUrl = tableNum === 1 ? `/api/items/${sku}/` : `/api/shop_items/${sku}/`;
-            console.log(apiUrl)
             $.ajax({
                 url: apiUrl,
                 type: 'DELETE',
                 headers: { 'X-CSRFToken': getCSRFToken() },
                 success: function () {
                     fetchItems(1);
-                    fetchItems(2);
                 }
             });
         }
