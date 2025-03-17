@@ -24,7 +24,7 @@ class Item(models.Model):
 
     def transfer_to_shop(self, shop_user, transfer_quantity):
         if Admin.objects.first().edit_lock:
-            raise ValueError("Transfers are disabled in update mode.")
+            raise ValueError("Transfers are disabled as the warehouse is being maintained. Please try again later.")
         if self.quantity < transfer_quantity:
             raise ValueError("Not enough stock to transfer")
 

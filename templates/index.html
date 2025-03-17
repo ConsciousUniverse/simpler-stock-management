@@ -30,7 +30,7 @@
             <h3>Warehouse Stock</h3>
             <div class="d-flex justify-content-between mb-2">
                 <input type="text" id="searchBox1" class="form-control" placeholder="Search Warehouse Items..." onkeyup="fetchItems(1, 1, this.value)">
-                <button id="updateModeToggle" class="btn btn-secondary ms-2 d-none" onclick="toggleUpdateMode()">Update Mode: Off</button>
+                <button id="updateModeToggle" class="btn btn-warning ms-2 d-none" onclick="toggleUpdateMode()">Update Mode: Off</button>
             </div>
             <table class='table table-bordered'>
                 <thead>
@@ -298,6 +298,18 @@
                 $(".warehouse-stock").removeClass("col-md-6");
                 $("#addItemSection").removeClass("d-none");
                 $("#updateModeToggle").removeClass("d-none");
+                // Fetch the current edit_lock status from the server
+                $.ajax({
+                    url: '/api/get_edit_lock_status/',
+                    type: 'GET',
+                    success: function (response) {
+                        const isUpdateModeOn = response.edit_lock;
+                        $('#updateModeToggle').text(`Update Mode: ${isUpdateModeOn ? 'On' : 'Off'}`);
+                    },
+                    error: function (xhr) {
+                        console.error("Failed to fetch edit lock status:", xhr.responseText);
+                    }
+                });
             } else {
                 $(".shop-stock").show();
             }
