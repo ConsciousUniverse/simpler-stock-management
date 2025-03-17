@@ -26,7 +26,7 @@
     </nav>
     <h2 class='mb-4'>Item Manager</h2>
     <div class='row'>
-        <div class='col-md-6 warehouse-stock'>
+        <div class='col-12 warehouse-stock mb-4'>
             <h3>Warehouse Stock</h3>
             <input type="text" id="searchBox1" class="form-control mb-2" placeholder="Search Warehouse Items..."
                 onkeyup="fetchItems(1, 1, this.value)">
@@ -45,7 +45,7 @@
             </table>
             <div id="paginationControls1" class="pagination-controls"></div>
         </div>
-        <div class='col-md-6 shop-stock'>
+        <div class='col-12 shop-stock'>
             <h3>Shop Stock</h3>
             <input type="text" id="searchBox2" class="form-control mb-2" placeholder="Search Shop Items..."
                 onkeyup="fetchItems(2, 1, this.value)">
@@ -64,12 +64,14 @@
             <div id="paginationControls2" class="pagination-controls"></div>
         </div>
     </div>
-    <h3>Add Item</h3>
-    <input type='text' id='sku' placeholder='SKU' class='form-control mb-2'>
-    <input type='text' id='description' placeholder='Description' class='form-control mb-2'>
-    <input type='number' step='0.01' id='retail_price' placeholder='Retail Price' class='form-control mb-2'>
-    <input type='number' id='quantity' placeholder='Quantity' class='form-control mb-2'>
-    <button id='addItem' class='btn btn-primary'>Add</button>
+    <div id="addItemSection" class="d-none">
+        <h3>Add Item</h3>
+        <input type='text' id='sku' placeholder='SKU' class='form-control mb-2'>
+        <input type='text' id='description' placeholder='Description' class='form-control mb-2'>
+        <input type='number' step='0.01' id='retail_price' placeholder='Retail Price' class='form-control mb-2'>
+        <input type='number' id='quantity' placeholder='Quantity' class='form-control mb-2'>
+        <button id='addItem' class='btn btn-primary'>Add</button>
+    </div>
     <script>
         function getCSRFToken() {
             return document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
@@ -95,20 +97,56 @@
                 tableBody.empty();
 
                 data.results.forEach(item => {
-                    let row = `
+                    let row;
+                    if (tableNum === 1) {
+                        let descriptionField = window.userGroups && window.userGroups.includes("managers") ? 
+                            `<input type='text' value='${item.description}' class='form-control' id='description${tableNum}-${item.sku}'>` : 
+                            item.description;
+                        let retailPriceField = window.userGroups && window.userGroups.includes("managers") ? 
+                            `<input type='text' value='${item.retail_price}' class='form-control' id='retail_price${tableNum}-${item.sku}'>` : 
+                            item.retail_price;
+                        let quantityField = window.userGroups && window.userGroups.includes("managers") ? 
+                            `<input type='number' value='${item.quantity}' class='form-control' id='quantity${tableNum}-${item.sku}'>` : 
+                            item.quantity;
+                        let transferQuantityField = window.userGroups && window.userGroups.includes("shop_users") ? 
+                            `<input type='number' value='0' class='form-control' id='xfer_quantity1-${item.sku}'>` : 
+                            '';
+
+                        row = `
                 <tr>
                     <td>${item.sku}</td>
-                    <td><input type='text' value='${item.description}' class='form-control' id='description${tableNum}-${item.sku}'></td>
-                    <td><input type='text' value='${item.retail_price}' class='form-control' id='retail_price${tableNum}-${item.sku}'></td>
-                    <td><input type='number' value='${item.quantity}' class='form-control' id='quantity${tableNum}-${item.sku}'></td>
-                    ${tableNum === 1 ? `<td><input type='number' value='0' class='form-control' id='xfer_quantity1-${item.sku}'></td>` : ''}
-                    <td>
-                        ${tableNum === 1 ? `<button onclick='updateItem("${item.sku}", ${tableNum})' class='btn btn-warning'>Update</button>` : ''}
-                        ${tableNum === 1 ? `<button onclick='deleteItem("${item.sku}", ${tableNum})' class='btn btn-danger'>Delete</button>` : ''}
-                        ${tableNum === 1 ? `<button onclick='transferItem("${item.sku}")' class='btn btn-info'>Transfer</button>` : ''}
-                    </td>
+                    <td>${descriptionField}</td>
+                    <td>${retailPriceField}</td>
+                    <td>${quantityField}</td>
+                    ${window.userGroups && window.userGroups.includes("shop_users") ? `<td>${transferQuantityField}</td>` : ''}
+                    <td class="actions"></td>
                 </tr>`;
+                    } else {
+                        row = `
+                <tr>
+                    <td>${item.item.sku}</td>
+                    <td>${item.item.description}</td>
+                    <td>${item.item.retail_price}</td>
+                    <td>${item.quantity}</td>
+                    <td></td>
+                </tr>`;
+                    }
                     tableBody.append(row);
+
+                    // Show update and delete buttons only for managers
+                    if (tableNum === 1 && window.userGroups && window.userGroups.includes("managers")) {
+                        $(`#itemTable1 tr:last .actions`).append(`
+                            <button onclick='updateItem("${item.sku}", ${tableNum})' class='btn btn-warning'>Update</button>
+                            <button onclick='deleteItem("${item.sku}", ${tableNum})' class='btn btn-danger'>Delete</button>
+                        `);
+                    }
+
+                    // Show transfer button only for shop_users
+                    if (tableNum === 1 && window.userGroups && window.userGroups.includes("shop_users")) {
+                        $(`#itemTable1 tr:last .actions`).append(`
+                            <button onclick='transferItem("${item.sku}")' class='btn btn-info'>Transfer</button>
+                        `);
+                    }
                 });
                 setupPagination(tableNum, data, sortColumn, sortOrder);
             });
@@ -180,7 +218,7 @@
                     quantity: qnt
                 }),
                 success: function () {
-                    fetchItems(tableNum);
+                    fetchItems(tableNum);  // Ensure the correct table is refreshed
                 }
             });
         }
@@ -192,7 +230,7 @@
                 type: 'DELETE',
                 headers: { 'X-CSRFToken': getCSRFToken() },
                 success: function () {
-                    fetchItems(1);
+                    fetchItems(tableNum);  // Ensure the correct table is refreshed
                 }
             });
         }
@@ -219,12 +257,19 @@
         }
 
         function tailor_dashboard(groups) {
+            window.userGroups = groups;  // Store user groups globally
             if (groups && groups.includes("managers")) {
                 $(".shop-stock").hide();
                 $(".warehouse-stock").addClass("col-md-12");
                 $(".warehouse-stock").removeClass("col-md-6");
+                $("#addItemSection").removeClass("d-none");
             } else {
                 $(".shop-stock").show();
+            }
+
+            // Remove 'Transfer Qnt' column header if user is not in shop_users group
+            if (!groups.includes("shop_users")) {
+                $("th:contains('Transfer Qnt')").hide();
             }
         }
 

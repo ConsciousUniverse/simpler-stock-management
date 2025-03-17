@@ -10,6 +10,8 @@ class ItemSerializer(serializers.ModelSerializer):
 
 
 class ShopItemSerializer(serializers.ModelSerializer):
+    item = ItemSerializer()
+
     class Meta:
         model = ShopItem
-        fields = ["sku", "description", "retail_price", "quantity", "xfer_pending"]
+        fields = ["shop_user", "item", "quantity", "xfer_pending", "last_updated"]

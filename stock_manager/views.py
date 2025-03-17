@@ -15,6 +15,7 @@ from rest_framework.decorators import permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
+from rest_framework.decorators import action
 
 
 # API View
@@ -42,11 +43,21 @@ class ItemViewSet(viewsets.ModelViewSet):
             queryset = queryset.order_by(Lower('sku'))
         return queryset
 
+    def update(self, request, *args, **kwargs):
+        if not request.user.groups.filter(name='managers').exists():
+            return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        if not request.user.groups.filter(name='managers').exists():
+            return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
+
 
 class ShopItemViewSet(viewsets.ModelViewSet):
     queryset = ShopItem.objects.all()
     serializer_class = ShopItemSerializer
-    lookup_field = "sku"
+    lookup_field = "item__sku"
     permission_classes = [IsAuthenticated]
     pagination_class = CustomPagination 
 
@@ -55,7 +66,7 @@ class ShopItemViewSet(viewsets.ModelViewSet):
         search_query = self.request.query_params.get("search", None)
         if search_query:
             queryset = queryset.filter(
-                description__icontains=search_query
+                item__description__icontains=search_query
             )  # 🔍 Search filter
         ordering = self.request.query_params.get("ordering", None)
         if ordering:
@@ -64,7 +75,7 @@ class ShopItemViewSet(viewsets.ModelViewSet):
             else:
                 queryset = queryset.order_by(Lower(ordering))
         else:
-            queryset = queryset.order_by(Lower('sku'))
+            queryset = queryset.order_by(Lower('item__sku'))
         return queryset
 
 
