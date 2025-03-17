@@ -76,9 +76,10 @@
         }
 
         function sortTable(tableNum, column) {
-            let currentOrder = $(`#table${tableNum}`).data('sortOrder') || 'asc';
+            let currentOrder = $(`#itemTable${tableNum}`).data('sortOrder') || 'asc';
             let newOrder = currentOrder === 'asc' ? 'desc' : 'asc';
-            $(`#table${tableNum}`).data('sortOrder', newOrder);
+            $(`#itemTable${tableNum}`).data('sortOrder', newOrder);
+            $(`#itemTable${tableNum}`).data('sortColumn', column);
             fetchItems(tableNum, 1, $(`#searchBox${tableNum}`).val(), column, newOrder);
         }
 
@@ -109,34 +110,38 @@
                 </tr>`;
                     tableBody.append(row);
                 });
-                setupPagination(tableNum, data);
+                setupPagination(tableNum, data, sortColumn, sortOrder);
             });
         }
 
-        function setupPagination(tableNum, data) {
+        function setupPagination(tableNum, data, sortColumn = '', sortOrder = '') {
             let paginationDiv = tableNum === 1 ? $('#paginationControls1') : $('#paginationControls2');
             paginationDiv.empty();
 
             let paginationHtml = '<nav aria-label="Page navigation"><ul class="pagination justify-content-center">';
 
             if (data.previous_page_number) {
-                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick='fetchItems(${tableNum}, ${data.previous_page_number}, $("#searchBox${tableNum}").val())'>Previous</a></li>`;
+                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick='fetchItems(${tableNum}, ${data.previous_page_number}, $("#searchBox${tableNum}").val(), "${sortColumn}", "${sortOrder}")'>Previous</a></li>`;
             }
 
             for (let i = 1; i <= data.total_pages; i++) {
-                paginationHtml += `<li class="page-item ${i === data.current_page ? 'active' : ''}"><a class="page-link" href="#" onclick='fetchItems(${tableNum}, ${i}, $("#searchBox${tableNum}").val())'>${i}</a></li>`;
+                paginationHtml += `<li class="page-item ${i === data.current_page ? 'active' : ''}"><a class="page-link" href="#" onclick='fetchItems(${tableNum}, ${i}, $("#searchBox${tableNum}").val(), "${sortColumn}", "${sortOrder}")'>${i}</a></li>`;
             }
 
             if (data.next_page_number) {
-                if (data.next_page_number) {
-                    paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick='fetchItems(${tableNum}, ${data.next_page_number}, $("#searchBox${tableNum}").val())'>Next</a></li>`;
-                }
+                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick='fetchItems(${tableNum}, ${data.next_page_number}, $("#searchBox${tableNum}").val(), "${sortColumn}", "${sortOrder}")'>Next</a></li>`;
             }
 
             paginationHtml += '</ul></nav>';
             paginationDiv.append(paginationHtml);
-        }
 
+            // Reattach event listeners to pagination links
+            paginationDiv.find('a.page-link').off('click').on('click', function (event) {
+                event.preventDefault();
+                let page = $(this).attr('onclick').match(/fetchItems\(\d+, (\d+),/)[1];
+                fetchItems(tableNum, page, $(`#searchBox${tableNum}`).val(), sortColumn, sortOrder);
+            });
+        }
 
         function addItem() {
             $.ajax({
@@ -175,8 +180,7 @@
                     quantity: $(`#quantity${tableNum}-${sku}`).val()
                 }),
                 success: function () {
-                    fetchItems(1);
-                    fetchItems(2);
+                    fetchItems(tableNum);
                 }
             });
         }

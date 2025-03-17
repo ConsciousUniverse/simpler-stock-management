@@ -10,6 +10,7 @@ from rest_framework.response import (
     Response,
 )  # For returning HTTP responses in REST framework
 from rest_framework.decorators import api_view
+from django.db.models.functions import Lower
 
 
 # API View
@@ -29,9 +30,12 @@ class ItemViewSet(viewsets.ModelViewSet):
             )  # 🔍 Search filter
         ordering = self.request.query_params.get("ordering", None)
         if ordering:
-            queryset = queryset.order_by(ordering)
+            if ordering.startswith('-'):
+                queryset = queryset.order_by(Lower(ordering[1:])).reverse()
+            else:
+                queryset = queryset.order_by(Lower(ordering))
         else:
-            queryset = queryset.order_by('sku')
+            queryset = queryset.order_by(Lower('sku'))
         return queryset
 
 
@@ -51,9 +55,12 @@ class ShopItemViewSet(viewsets.ModelViewSet):
             )  # 🔍 Search filter
         ordering = self.request.query_params.get("ordering", None)
         if ordering:
-            queryset = queryset.order_by(ordering)
+            if ordering.startswith('-'):
+                queryset = queryset.order_by(Lower(ordering[1:])).reverse()
+            else:
+                queryset = queryset.order_by(Lower(ordering))
         else:
-            queryset = queryset.order_by('sku')
+            queryset = queryset.order_by(Lower('sku'))
         return queryset
 
 
