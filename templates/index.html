@@ -2,6 +2,7 @@
 <html lang='en'>
 
 <head>
+    {% load static %}
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
     <title>Item Manager</title>
@@ -12,7 +13,12 @@
 <body class='container mt-5'>
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
-        <a class="navbar-brand" href="#">Item Manager</a>
+        <a class="navbar-brand" href="#">
+            <img src="{% static 'img/logo.webp' %}" alt="Logo" style="max-width: 95px; max-height: 95px;">
+        </a>
+        <div class="navbar-collapse collapse justify-content-center">
+            <span class="navbar-text h1">Even Simpler Stock Manager</span>
+        </div>
         <div class="collapse navbar-collapse">
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item">
@@ -174,7 +180,7 @@
             }
 
             if (data.next_page_number) {
-                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick='fetchItems(${tableNum}, ${data.next_page_number}, $("#searchBox${tableNum}").val(), "${sortColumn}", "${sortOrder}")'>Next</a></li>`;
+                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick='fetchItems(${tableNum}, ${data.next_page_number}, $("#searchBox${tableNum}).val(), "${sortColumn}", "${sortOrder}")'>Next</a></li>`;
             }
 
             paginationHtml += '</ul></nav>';

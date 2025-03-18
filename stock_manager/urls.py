@@ -2,6 +2,8 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import ItemViewSet, ShopItemViewSet, index, get_user, transfer_item, toggle_update_mode, get_edit_lock_status  # Add get_edit_lock_status import
 from rest_framework.authtoken.views import obtain_auth_token
+from django.conf.urls.static import static
+from django.conf import settings
 
 router = DefaultRouter()
 router.register(r'items', ItemViewSet)
@@ -16,3 +18,6 @@ urlpatterns = [
     path('api/toggle_update_mode/', toggle_update_mode, name='toggle_update_mode'),  # Ensure correct import
     path('api/get_edit_lock_status/', get_edit_lock_status, name='get_edit_lock_status'),  # Add this line
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
