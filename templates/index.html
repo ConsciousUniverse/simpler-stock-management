@@ -220,7 +220,7 @@
                             `<input type='number' value='${item.quantity}' class='form-control' id='quantity${tableNum}-${item.sku}'>` : 
                             item.quantity;
                         let transferQuantityField = window.userGroups && window.userGroups.includes("shop_users") && !isUpdateModeOn ? 
-                            `<input type='number' value='0' class='form-control' id='xfer_quantity1-${item.sku}'>` : 
+                            `<input type='number' placeholder='Enter transfer quantity' class='form-control' id='xfer_quantity1-${item.sku}'>` : 
                             '';
 
                         row = `
