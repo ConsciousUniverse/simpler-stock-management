@@ -3,6 +3,9 @@ from django.contrib.auth.models import User
 import re
 from decimal import Decimal
 
+# Override the __str__ method of the User model to return the username
+User.add_to_class("__str__", lambda self: self.username)
+
 class Admin(models.Model):
     edit_lock = models.BooleanField(default=False)
 
@@ -31,16 +34,16 @@ class Item(models.Model):
         self.quantity -= transfer_quantity
         self.save()
 
-        shop_item, created = ShopItem.objects.get_or_create(
+        transfer_item, created = TransferItem.objects.get_or_create(
             item=self,
             shop_user=shop_user,
-            defaults={
-                'last_updated': self.last_updated,
-            }
+            # defaults={
+            #     'last_updated': self.last_updated,
+            # }
         )
 
-        shop_item.quantity += transfer_quantity
-        shop_item.save()
+        transfer_item.quantity += transfer_quantity
+        transfer_item.save()
 
 
 class ShopItem(models.Model):
@@ -49,6 +52,16 @@ class ShopItem(models.Model):
     item = models.ForeignKey(Item, on_delete=models.CASCADE, default=1)  # Relates ShopItem to Item with a default value
     quantity = models.IntegerField(default=0)
     last_updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.shop_user.username} - {self.item.sku}"
+
+class TransferItem(models.Model):
+    shop_user = models.ForeignKey(User, on_delete=models.CASCADE)  # Relates item to a User
+    item = models.ForeignKey(Item, on_delete=models.CASCADE, default=1)  # Relates ShopItem to Item with a default value
+    quantity = models.IntegerField(default=0)
+    last_updated = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.shop_user.username} - {self.item.sku}"

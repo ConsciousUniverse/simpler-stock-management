@@ -10,101 +10,133 @@
     <script src='https://code.jquery.com/jquery-3.6.0.min.js'></script>
     <style>
         :root {
-            --primary-color: #004d00; /* Darker Green */
-            --secondary-color: #FFD700; /* Gold */
-            --background-color: #004d00; /* Darker Green */
-            --text-color: #ffffff; /* White */
-            --border-radius: 5px; /* Slightly rounded corners */
+            --primary-color: #004d00;
+            /* Darker Green */
+            --secondary-color: #FFD700;
+            /* Gold */
+            --background-color: #004d00;
+            /* Darker Green */
+            --text-color: #ffffff;
+            /* White */
+            --border-radius: 5px;
+            /* Slightly rounded corners */
         }
+
         body {
             background-color: var(--background-color);
             color: var(--text-color);
         }
+
         .navbar-light {
             background-color: var(--secondary-color) !important;
             padding: 15px;
             border-radius: var(--border-radius);
         }
-        .navbar-light .navbar-brand, .navbar-light .navbar-text, .navbar-light .nav-link {
+
+        .navbar-light .navbar-brand,
+        .navbar-light .navbar-text,
+        .navbar-light .nav-link {
             color: var(--primary-color) !important;
         }
+
         .btn-outline-primary {
             color: var(--secondary-color);
             border-color: var(--secondary-color);
             border-radius: var(--border-radius);
         }
+
         .btn-outline-primary:hover {
             background-color: var (--secondary-color);
             color: var(--primary-color);
         }
+
         .btn-warning {
             background-color: var(--secondary-color);
             border-color: var(--secondary-color);
             color: var(--primary-color);
             border-radius: var(--border-radius);
         }
+
         .btn-warning:hover {
             background-color: var(--primary-color);
             border-color: var(--primary-color);
             color: var(--secondary-color);
         }
+
         .btn-info {
             background-color: var(--secondary-color);
             border-color: var(--secondary-color);
             color: var(--primary-color);
             border-radius: var(--border-radius);
         }
+
         .btn-info:hover {
             background-color: var(--primary-color);
             border-color: var(--primary-color);
             color: var(--secondary-color);
         }
+
         .btn-warning#updateModeToggle:hover {
             background-color: var(--text-color);
             color: var(--primary-color);
         }
+
         .btn-primary {
             background-color: var(--secondary-color);
             border-color: var(--secondary-color);
-            color: var(--primary-color);
+            color: var (--primary-color);
             border-radius: var(--border-radius);
         }
+
         .btn-primary:hover {
             background-color: var(--primary-color);
             border-color: var(--primary-color);
             color: var(--secondary-color);
         }
+
         .btn-outline-primary#authLink {
             background-color: var(--primary-color);
             color: var(--secondary-color);
             border-color: var(--primary-color);
             border-radius: var(--border-radius);
         }
+
         .btn-outline-primary#authLink:hover {
             background-color: var(--secondary-color);
             color: var(--primary-color);
         }
+
         .pagination .page-link {
             background-color: var(--secondary-color);
             color: var(--primary-color);
             border-color: var(--secondary-color);
             border-radius: var(--border-radius);
         }
+
         .pagination .page-link:hover {
             background-color: var(--primary-color);
             color: var(--secondary-color);
         }
+
         .table {
             color: var(--primary-color);
             border-radius: var(--border-radius);
         }
-        .table th, .table td {
+
+        .table th,
+        .table td {
             background-color: var(--text-color);
             /* border-radius: var(--border-radius); */
         }
+
         .form-control {
             border-color: var(--primary-color);
             border-radius: var(--border-radius);
+        }
+
+        #transfersPendingSection {
+            margin-top: 50px;
+            /* Add margin between Transfers Pending section and the Add button element above it */
         }
     </style>
 </head>
@@ -116,7 +148,7 @@
             <img src="{% static 'img/logo.webp' %}" alt="Logo" style="max-width: 95px; max-height: 95px;">
         </a>
         <div class="navbar-collapse collapse justify-content-center">
-            <span class="navbar-text h1">Even Simpler Stock Manager</span>
+            <span class="navbar-text h1">Simpler Stock Manager</span>
         </div>
         <div class="collapse navbar-collapse">
             <ul class="navbar-nav ms-auto">
@@ -133,7 +165,8 @@
     <div class='row'>
         <div class='col-12 warehouse-stock mb-4'>
             <div class="d-flex justify-content-between mb-2">
-                <input type="text" id="searchBox1" class="form-control" placeholder="Search Warehouse Items..." onkeyup="fetchItems(1, 1, this.value)">
+                <input type="text" id="searchBox1" class="form-control" placeholder="Search Warehouse Items..."
+                    onkeyup="fetchItems(1, 1, this.value)">
                 <button id="updateModeToggle" class="btn btn-warning ms-2 d-none" onclick="toggleUpdateMode()"></button>
             </div>
             <table class='table table-bordered'>
@@ -178,6 +211,22 @@
         <input type='number' id='quantity' placeholder='Quantity' class='form-control mb-2'>
         <button id='addItem' class='btn btn-primary'>Add</button>
     </div>
+    <div id="transfersPendingSection" class="d-none">
+        <h3>Transfers Pending</h3>
+        <table class='table table-bordered'>
+            <thead>
+                <tr>
+                    <th onclick="sortTable(3, 'shop_user__username')">Shop User</th>
+                    <th onclick="sortTable(3, 'item__sku')">SKU</th>
+                    <th onclick="sortTable(3, 'item__description')">Description</th>
+                    <th onclick="sortTable(3, 'quantity')">Quantity</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id='itemTable3'></tbody>
+        </table>
+        <div id="paginationControls3" class="pagination-controls"></div>
+    </div>
     <script>
         function getCSRFToken() {
             return document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
@@ -196,31 +245,45 @@
         }
 
         function fetchItems(tableNum, page = 1, searchQuery = '', sortColumn = '', sortOrder = '') {
-            let apiUrl = tableNum === 1 ? '/api/items/' : '/api/shop_items/';
+            let apiUrl;
+            if (tableNum === 1) {
+                apiUrl = '/api/items/';
+            } else if (tableNum === 2) {
+                apiUrl = '/api/shop_items/';
+            } else if (tableNum === 3) {
+                apiUrl = '/api/transfer_items/';  // Ensure this endpoint exists on the server
+            }
             apiUrl += `?page=${page}&search=${encodeURIComponent(searchQuery)}`;
             if (sortColumn) {
                 apiUrl += `&ordering=${sortOrder === 'asc' ? '' : '-'}${sortColumn}`;
             }
 
             $.get(apiUrl, function (data) {
-                let tableBody = tableNum === 1 ? $('#itemTable1') : $('#itemTable2');
+                let tableBody;
+                if (tableNum === 1) {
+                    tableBody = $('#itemTable1');
+                } else if (tableNum === 2) {
+                    tableBody = $('#itemTable2');
+                } else if (tableNum === 3) {
+                    tableBody = $('#itemTable3');
+                }
                 tableBody.empty();
 
                 const isUpdateModeOn = $('#updateModeToggle').text().includes('Leave');
                 data.results.forEach(item => {
                     let row;
                     if (tableNum === 1) {
-                        let descriptionField = window.userGroups && window.userGroups.includes("managers") && isUpdateModeOn ? 
-                            `<input type='text' value='${item.description}' class='form-control' id='description${tableNum}-${item.sku}'>` : 
+                        let descriptionField = window.userGroups && window.userGroups.includes("managers") && isUpdateModeOn ?
+                            `<input type='text' value='${item.description}' class='form-control' id='description${tableNum}-${item.sku}'>` :
                             item.description;
-                        let retailPriceField = window.userGroups && window.userGroups.includes("managers") && isUpdateModeOn ? 
-                            `<input type='text' value='${parseFloat(item.retail_price).toFixed(2)}' class='form-control' id='retail_price${tableNum}-${item.sku}'>` : 
+                        let retailPriceField = window.userGroups && window.userGroups.includes("managers") && isUpdateModeOn ?
+                            `<input type='text' value='${parseFloat(item.retail_price).toFixed(2)}' class='form-control' id='retail_price${tableNum}-${item.sku}'>` :
                             parseFloat(item.retail_price).toFixed(2);
-                        let quantityField = window.userGroups && window.userGroups.includes("managers") && isUpdateModeOn ? 
-                            `<input type='number' value='${item.quantity}' class='form-control' id='quantity${tableNum}-${item.sku}'>` : 
+                        let quantityField = window.userGroups && window.userGroups.includes("managers") && isUpdateModeOn ?
+                            `<input type='number' value='${item.quantity}' class='form-control' id='quantity${tableNum}-${item.sku}'>` :
                             item.quantity;
-                        let transferQuantityField = window.userGroups && window.userGroups.includes("shop_users") && !isUpdateModeOn ? 
-                            `<input type='number' placeholder='Enter transfer quantity' class='form-control' id='xfer_quantity1-${item.sku}'>` : 
+                        let transferQuantityField = window.userGroups && window.userGroups.includes("shop_users") && !isUpdateModeOn ?
+                            `<input type='number' placeholder='Enter transfer quantity' class='form-control' id='xfer_quantity1-${item.sku}'>` :
                             '';
 
                         row = `
@@ -232,7 +295,7 @@
                     ${window.userGroups && window.userGroups.includes("shop_users") && !isUpdateModeOn ? `<td>${transferQuantityField}</td>` : ''}
                     <td class="actions"></td>
                 </tr>`;
-                    } else {
+                    } else if (tableNum === 2) {
                         row = `
                 <tr>
                     <td>${item.item.sku}</td>
@@ -240,6 +303,19 @@
                     <td>${parseFloat(item.item.retail_price).toFixed(2)}</td>
                     <td>${item.quantity}</td>
                     <td></td>
+                </tr>`;
+                    } else if (tableNum === 3) {
+                        row = `
+                <tr>
+                    <td>${item.shop_user.username}</td>
+                    <td>${item.item.sku}</td>
+                    <td>${item.item.description}</td>
+                    <td>${item.quantity}</td>
+                    
+                    <td class="actions">
+                        <button onclick='dispatchTransfer("${item.item.sku}")' class='btn btn-info'>Dispatched</button>
+                        <button onclick='cancelTransfer("${item.item.sku}")' class='btn btn-danger'>Cancel</button>
+                    </td>
                 </tr>`;
                     }
                     tableBody.append(row);
@@ -264,21 +340,28 @@
         }
 
         function setupPagination(tableNum, data, sortColumn = '', sortOrder = '') {
-            let paginationDiv = tableNum === 1 ? $('#paginationControls1') : $('#paginationControls2');
+            let paginationDiv;
+            if (tableNum === 1) {
+                paginationDiv = $('#paginationControls1');
+            } else if (tableNum === 2) {
+                paginationDiv = $('#paginationControls2');
+            } else if (tableNum === 3) {
+                paginationDiv = $('#paginationControls3');
+            }
             paginationDiv.empty();
 
             let paginationHtml = '<nav aria-label="Page navigation"><ul class="pagination justify-content-center">';
 
             if (data.previous_page_number) {
-                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick='fetchItems(${tableNum}, ${data.previous_page_number}, $("#searchBox${tableNum}").val(), "${sortColumn}", "${sortOrder}")'>Previous</a></li>`;
+                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="fetchItems(${tableNum}, ${data.previous_page_number}, $('#searchBox${tableNum}').val(), '${sortColumn}', '${sortOrder}')">Previous</a></li>`;
             }
 
             for (let i = 1; i <= data.total_pages; i++) {
-                paginationHtml += `<li class="page-item ${i === data.current_page ? 'active' : ''}"><a class="page-link" href="#" onclick='fetchItems(${tableNum}, ${i}, $("#searchBox${tableNum}).val(), "${sortColumn}", "${sortOrder}")'>${i}</a></li>`;
+                paginationHtml += `<li class="page-item ${i === data.current_page ? 'active' : ''}"><a class="page-link" href="#" onclick="fetchItems(${tableNum}, ${i}, $('#searchBox${tableNum}').val(), '${sortColumn}', '${sortOrder}')">${i}</a></li>`;
             }
 
             if (data.next_page_number) {
-                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick='fetchItems(${tableNum}, ${data.next_page_number}, $("#searchBox${tableNum}).val(), "${sortColumn}", "${sortOrder}")'>Next</a></li>`;
+                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="fetchItems(${tableNum}, ${data.next_page_number}, $('#searchBox${tableNum}').val(), '${sortColumn}', '${sortOrder}')">Next</a></li>`;
             }
 
             paginationHtml += '</ul></nav>';
@@ -375,6 +458,16 @@
             });
         }
 
+        function dispatchTransfer(sku) {
+            console.log(`Dispatched button clicked for SKU: ${sku}`);
+            // Add your code here
+        }
+
+        function cancelTransfer(sku) {
+            console.log(`Cancel button clicked for SKU: ${sku}`);
+            // Add your code here
+        }
+
         function toggleUpdateMode() {
             const updateModeButton = $('#updateModeToggle');
             const isUpdateModeOn = updateModeButton.text().includes('Leave');
@@ -406,6 +499,7 @@
                 $(".warehouse-stock").removeClass("col-md-6");
                 $("#addItemSection").removeClass("d-none");
                 $("#updateModeToggle").removeClass("d-none");
+                $("#transfersPendingSection").removeClass("d-none");
                 // Fetch the current edit_lock status from the server
                 $.ajax({
                     url: '/api/get_edit_lock_status/',
@@ -467,6 +561,7 @@
             checkAuthStatus();
             fetchItems(1);
             fetchItems(2);
+            fetchItems(3);
             $('#addItem').click(addItem);
         });
     </script>

@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ItemViewSet, ShopItemViewSet, index, get_user, transfer_item, toggle_update_mode, get_edit_lock_status  # Add get_edit_lock_status import
+from .views import ItemViewSet, ShopItemViewSet, TransferItemViewSet, index, get_user, transfer_item, toggle_update_mode, get_edit_lock_status  # Add TransferItemViewSet import
 from rest_framework.authtoken.views import obtain_auth_token
 from django.conf.urls.static import static
 from django.conf import settings
@@ -8,6 +8,7 @@ from django.conf import settings
 router = DefaultRouter()
 router.register(r'items', ItemViewSet)
 router.register(r'shop_items', ShopItemViewSet)
+router.register(r'transfer_items', TransferItemViewSet)  # Add this line
 
 urlpatterns = [
     path('', index, name='index'),

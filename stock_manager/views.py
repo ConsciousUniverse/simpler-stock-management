@@ -2,8 +2,8 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-from .models import Item, ShopItem, Admin
-from .serializers import ItemSerializer, ShopItemSerializer
+from .models import Item, ShopItem, TransferItem, Admin
+from .serializers import ItemSerializer, ShopItemSerializer, TransferItemSerializer
 from .pagination import CustomPagination
 from django.contrib.auth.models import User  # For accessing the User model
 from rest_framework.response import (
@@ -77,6 +77,29 @@ class ShopItemViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(
                 item__description__icontains=search_query
             )  # 🔍 Search filter
+        ordering = self.request.query_params.get("ordering", None)
+        if ordering:
+            if ordering.startswith("-"):
+                queryset = queryset.order_by(Lower(ordering[1:])).reverse()
+            else:
+                queryset = queryset.order_by(Lower(ordering))
+        else:
+            queryset = queryset.order_by(Lower("item__sku"))
+        return queryset
+
+
+class TransferItemViewSet(viewsets.ModelViewSet):
+    queryset = TransferItem.objects.all()
+    serializer_class = TransferItemSerializer
+    lookup_field = "item__sku"
+    permission_classes = [IsAuthenticated]
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        queryset = TransferItem.objects.all()
+        search_query = self.request.query_params.get("search", None)
+        if search_query:
+            queryset = queryset.filter(item__description__icontains=search_query)
         ordering = self.request.query_params.get("ordering", None)
         if ordering:
             if ordering.startswith("-"):
