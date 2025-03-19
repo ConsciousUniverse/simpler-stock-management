@@ -71,7 +71,7 @@
         }
 
         .btn-info:hover {
-            background-color: var(--primary-color);
+            background-color: var (--primary-color);
             border-color: var(--primary-color);
             color: var(--secondary-color);
         }
@@ -493,6 +493,20 @@
         function toggleUpdateMode() {
             const updateModeButton = $('#updateModeToggle');
             const isUpdateModeOn = updateModeButton.text().includes('Leave');
+            const currentPage = $('#paginationControls1 .page-item.active .page-link').text(); // Get the current page number
+
+            if (isUpdateModeOn) {
+                // Save all changes before leaving update mode
+                $('#itemTable1 tr').each(function () {
+                    const sku = $(this).find('td:first').text();
+                    const desc = $(`#description1-${sku}`).val();
+                    const price = $(`#retail_price1-${sku}`).val();
+                    const qnt = $(`#quantity1-${sku}`).val();
+                    if (desc !== undefined && price !== undefined && qnt !== undefined) {
+                        updateItem(sku, 1);
+                    }
+                });
+            }
             setUpdateModeButtonText(!isUpdateModeOn);
             $.ajax({
                 url: '/api/toggle_update_mode/',
@@ -503,7 +517,7 @@
                     update_mode: !isUpdateModeOn
                 }),
                 success: function (response) {
-                    fetchItems(1);
+                    fetchItems(1, currentPage); // Ensure table1 remains on the same page
                     if (response.edit_lock) {
                         $('.btn-info').attr('disabled', true);
                     } else {
