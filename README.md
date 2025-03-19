@@ -26,6 +26,14 @@ Simpler Stock Management is a web application designed to help manage warehouse 
 - **Transfer Items**: Shop users can request to transfer items from the warehouse to the shop.
 - **Complete Transfers**: Managers can dispatch or cancel pending transfers from the warehouse to the shops. Warehouse inventory is only reduced - and shop inventory increased - after managers have actioned the dispatch on the system.
 
+### Screenshots
+
+### Warehouse manager's view
+![image](https://github.com/user-attachments/assets/54ddbe64-7278-4aa7-a0e4-8fced6c42bad)
+
+### Shop view
+![image](https://github.com/user-attachments/assets/9b18c4df-f92c-435d-a216-cdd492785c10)
+
 ## License
 
 Simpler Stock Management is licensed under the GPLv3. See the [LICENSE](LICENSE) file for more details.
