@@ -1,5 +1,7 @@
 # Simpler Stock Management (Beta)
 
+This is an early beta release. It is intended for testing only, and is not yet suitable for production deployment.
+
 Simpler Stock Management is a web application designed to help manage warehouse and shop stock efficiently. The application provides features for searching, sorting, updating, and transferring stock items between the warehouse and shops. Data is stored in a local SQLite3 database.
 
 ## Security
