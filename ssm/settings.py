@@ -43,8 +43,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
-    'DEFAULT_PAGINATION_CLASS': 'stock_manager.pagination.CustomPagination',  # Updated to use CustomPagination
-    'PAGE_SIZE': 2,  # Adjust as needed
+    'DEFAULT_PAGINATION_CLASS': 'stock_manager.pagination.CustomPagination',
 }
 
 LOGIN_REDIRECT_URL = "/"
