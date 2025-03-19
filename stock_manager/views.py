@@ -143,20 +143,25 @@ def get_user(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def complete_transfer(request):
-    if not request.user.groups.filter(name="managers").exists():
-        logger.debug("Permission denied: user is not in managers group.")
+    if (
+        not request.user.groups.filter(name="managers").exists()
+        and request.data.get("cancel") != "true"
+    ):
         return Response(
-            {"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN
+            {"detail": "Permission denied. User is not in managers group."},
+            status=status.HTTP_403_FORBIDDEN,
         )
-
     sku = request.data.get("sku")
     quantity = request.data.get("quantity")
     shop_user_id = request.data.get("shop_user_id")
-
     try:
         item = Item.objects.get(sku=sku)
+        cancel = True if request.data.get("cancel") == "true" else False
         item.transfer_to_shop(
-            shop_user=shop_user_id, transfer_quantity=quantity, complete=True
+            shop_user=shop_user_id,
+            transfer_quantity=quantity,
+            complete=True,
+            cancel=cancel,
         )
     except Item.DoesNotExist:
         logger.debug("Item not found: sku=%s", sku)
@@ -164,7 +169,9 @@ def complete_transfer(request):
     except ValueError as e:
         logger.debug("ValueError during transfer: %s", str(e))
         return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    return Response({"detail": "Transfer successful."}, status=status.HTTP_200_OK)
+    return Response(
+        {"detail": "Transfer action successful."}, status=status.HTTP_200_OK
+    )
 
 
 @api_view(["POST"])
@@ -178,23 +185,19 @@ def transfer_item(request):
             },
             status=status.HTTP_403_FORBIDDEN,
         )
-
     if not request.user.groups.filter(name="shop_users").exists():
         logger.debug("Permission denied: user is not in shop_users group.")
         return Response(
             {"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN
         )
-
     sku = request.data.get("sku")
     transfer_quantity = request.data.get("transfer_quantity")
-
     if not transfer_quantity.isdigit():
         logger.debug("Invalid transfer quantity: not an integer.")
         return Response(
             {"detail": "Transfer quantity must be an integer."},
             status=status.HTTP_400_BAD_REQUEST,
         )
-
     transfer_quantity = int(transfer_quantity)
     if transfer_quantity <= 0:
         logger.debug("Invalid transfer quantity: less than or equal to zero.")
@@ -202,7 +205,6 @@ def transfer_item(request):
             {"detail": "Transfer quantity must be greater than zero."},
             status=status.HTTP_400_BAD_REQUEST,
         )
-
     try:
         item = Item.objects.get(sku=sku)
         item.transfer_to_shop(request.user, transfer_quantity)

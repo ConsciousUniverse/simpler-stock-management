@@ -313,13 +313,13 @@
                     } else if (tableNum === 3) {
                         row = `
                 <tr>
-                    ${window.userGroups && window.userGroups.includes("shop_users") ? '' : `<td>${item.shop_user.username}</td>`}
+                    ${window.userGroups && !window.userGroups.includes("managers") ? '' : `<td>${item.shop_user.username}</td>`}
                     <td>${item.item.sku}</td>
                     <td>${item.item.description}</td>
                     <td>${item.quantity}</td>
                     <td class="actions">
-                        <button onclick='completeTransfer("${item.item.sku}", "${item.shop_user.id}", "${item.quantity}")' class='btn btn-info'>Dispatch</button>
-                        <button onclick='cancelTransfer("${item.item.sku}", "${item.shop_user.id}", "${item.quantity}")' class='btn btn-danger'>Cancel</button>
+                        ${window.userGroups && !window.userGroups.includes("managers") ? '' : `<button onclick='completeTransfer("${item.item.sku}", "${item.shop_user.id}", "${item.quantity}", "false")' class='btn btn-info'>Dispatch</button>`}
+                        <button onclick='completeTransfer("${item.item.sku}", "${item.shop_user.id}", "${item.quantity}", "true")' class='btn btn-danger'>Cancel</button>
                     </td>
                 </tr>`;
                     }
@@ -467,7 +467,7 @@
 
 
 
-        function completeTransfer(sku, shop_user_id, quantity) {
+        function completeTransfer(sku, shop_user_id, quantity, cancel) {
             $.ajax({
                 url: '/api/complete-transfer/',
                 type: 'POST',
@@ -476,10 +476,10 @@
                 data: JSON.stringify({
                     sku: sku,
                     shop_user_id: shop_user_id,
-                    quantity: quantity
+                    quantity: quantity,
+                    cancel: cancel
                 }),
                 success: function () {
-                    console.log('Success')
                     fetchItems(1);
                     fetchItems(2);
                     fetchItems(3);
@@ -489,13 +489,6 @@
                 }
             });
         }
-
-        function cancelTransfer(sku, shop_user_id, quantity) {
-            console.log(`Dispatch: sku: ${sku}, shop_user_id: ${shop_user_id}, quantity: ${quantity}`);
-            // Add your code here
-        }
-
-
 
         function toggleUpdateMode() {
             const updateModeButton = $('#updateModeToggle');
