@@ -6,7 +6,7 @@ import re
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["username"]
+        fields = ["id", "username", "email", "groups"]
 
 class ItemSerializer(serializers.ModelSerializer):
     class Meta:

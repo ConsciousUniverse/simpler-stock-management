@@ -96,7 +96,11 @@ class TransferItemViewSet(viewsets.ModelViewSet):
     pagination_class = CustomPagination
 
     def get_queryset(self):
-        queryset = TransferItem.objects.all()
+        user = self.request.user
+        if user.groups.filter(name="managers").exists():
+            queryset = TransferItem.objects.all()
+        else:
+            queryset = TransferItem.objects.filter(shop_user=user)
         search_query = self.request.query_params.get("search", None)
         if search_query:
             queryset = queryset.filter(item__description__icontains=search_query)
@@ -134,6 +138,33 @@ def get_user(request):
             "groups": list(user.groups.values_list("name", flat=True)),
         }
     )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def complete_transfer(request):
+    if not request.user.groups.filter(name="managers").exists():
+        logger.debug("Permission denied: user is not in managers group.")
+        return Response(
+            {"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN
+        )
+
+    sku = request.data.get("sku")
+    quantity = request.data.get("quantity")
+    shop_user_id = request.data.get("shop_user_id")
+
+    try:
+        item = Item.objects.get(sku=sku)
+        item.transfer_to_shop(
+            shop_user=shop_user_id, transfer_quantity=quantity, complete=True
+        )
+    except Item.DoesNotExist:
+        logger.debug("Item not found: sku=%s", sku)
+        return Response({"detail": "Item not found."}, status=status.HTTP_404_NOT_FOUND)
+    except ValueError as e:
+        logger.debug("ValueError during transfer: %s", str(e))
+        return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    return Response({"detail": "Transfer successful."}, status=status.HTTP_200_OK)
 
 
 @api_view(["POST"])
@@ -181,8 +212,6 @@ def transfer_item(request):
     except ValueError as e:
         logger.debug("ValueError during transfer: %s", str(e))
         return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-    logger.debug("Transfer successful: sku=%s, quantity=%d", sku, transfer_quantity)
     return Response({"detail": "Transfer successful."}, status=status.HTTP_200_OK)
 
 
@@ -203,12 +232,13 @@ def toggle_update_mode(request):
         status=status.HTTP_200_OK,
     )
 
+
 @csrf_exempt
 def get_edit_lock_status(request):
-    if request.method == 'GET':
+    if request.method == "GET":
         try:
             admin = Admin.objects.first()
-            return JsonResponse({'edit_lock': admin.edit_lock})
+            return JsonResponse({"edit_lock": admin.edit_lock})
         except Admin.DoesNotExist:
-            return JsonResponse({'edit_lock': False})
-    return JsonResponse({'error': 'Invalid request method'}, status=400)
+            return JsonResponse({"edit_lock": False})
+    return JsonResponse({"error": "Invalid request method"}, status=400)

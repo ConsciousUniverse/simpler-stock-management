@@ -41,7 +41,7 @@
 
         .btn-outline-primary {
             color: var(--secondary-color);
-            border-color: var(--secondary-color);
+            border-color: var (--secondary-color);
             border-radius: var(--border-radius);
         }
 
@@ -84,14 +84,16 @@
         .btn-primary {
             background-color: var(--secondary-color);
             border-color: var(--secondary-color);
-            color: var (--primary-color);
+            color: var(--primary-color);
+            /* Changed from var(--text-color) to var(--primary-color) */
             border-radius: var(--border-radius);
         }
 
         .btn-primary:hover {
-            background-color: var(--primary-color);
+            background-color: var(--text-color);
             border-color: var(--primary-color);
-            color: var(--secondary-color);
+            color: var(--primary-color) !important;
+            /* Ensure the color is white on mouseover */
         }
 
         .btn-outline-primary#authLink {
@@ -109,13 +111,14 @@
         .pagination .page-link {
             background-color: var(--secondary-color);
             color: var(--primary-color);
+            /* Changed from var(--text-color) to var(--primary-color) */
             border-color: var(--secondary-color);
             border-radius: var(--border-radius);
         }
 
         .pagination .page-link:hover {
-            background-color: var(--primary-color);
-            color: var(--secondary-color);
+            background-color: var(--text-color);
+            color: var(--primary-color);
         }
 
         .table {
@@ -211,7 +214,7 @@
         <input type='number' id='quantity' placeholder='Quantity' class='form-control mb-2'>
         <button id='addItem' class='btn btn-primary'>Add</button>
     </div>
-    <div id="transfersPendingSection" class="d-none">
+    <div id="transfersPendingSection">
         <h3>Transfers Pending</h3>
         <table class='table table-bordered'>
             <thead>
@@ -251,9 +254,12 @@
             } else if (tableNum === 2) {
                 apiUrl = '/api/shop_items/';
             } else if (tableNum === 3) {
-                apiUrl = '/api/transfer_items/';  // Ensure this endpoint exists on the server
+                apiUrl = '/api/transfer_items/';
+                if (window.userGroups && window.userGroups.includes("shop_users")) {
+                    apiUrl += `?shop_user_username=${window.loggedInUsername}`;
+                }
             }
-            apiUrl += `?page=${page}&search=${encodeURIComponent(searchQuery)}`;
+            apiUrl += `${apiUrl.includes('?') ? '&' : '?'}page=${page}&search=${encodeURIComponent(searchQuery)}`;
             if (sortColumn) {
                 apiUrl += `&ordering=${sortOrder === 'asc' ? '' : '-'}${sortColumn}`;
             }
@@ -307,14 +313,13 @@
                     } else if (tableNum === 3) {
                         row = `
                 <tr>
-                    <td>${item.shop_user.username}</td>
+                    ${window.userGroups && window.userGroups.includes("shop_users") ? '' : `<td>${item.shop_user.username}</td>`}
                     <td>${item.item.sku}</td>
                     <td>${item.item.description}</td>
                     <td>${item.quantity}</td>
-                    
                     <td class="actions">
-                        <button onclick='dispatchTransfer("${item.item.sku}")' class='btn btn-info'>Dispatched</button>
-                        <button onclick='cancelTransfer("${item.item.sku}")' class='btn btn-danger'>Cancel</button>
+                        <button onclick='completeTransfer("${item.item.sku}", "${item.shop_user.id}", "${item.quantity}")' class='btn btn-info'>Dispatch</button>
+                        <button onclick='cancelTransfer("${item.item.sku}", "${item.shop_user.id}", "${item.quantity}")' class='btn btn-danger'>Cancel</button>
                     </td>
                 </tr>`;
                     }
@@ -395,6 +400,7 @@
                 success: function () {
                     fetchItems(1);
                     fetchItems(2);
+                    fetchItems(3);
                 }
             });
         }
@@ -451,6 +457,7 @@
                 success: function () {
                     fetchItems(1);
                     fetchItems(2);
+                    fetchItems(3);
                 },
                 error: function (xhr) {
                     alert(xhr.responseJSON.detail);
@@ -458,15 +465,37 @@
             });
         }
 
-        function dispatchTransfer(sku) {
-            console.log(`Dispatched button clicked for SKU: ${sku}`);
+
+
+        function completeTransfer(sku, shop_user_id, quantity) {
+            $.ajax({
+                url: '/api/complete-transfer/',
+                type: 'POST',
+                contentType: 'application/json',
+                headers: { 'X-CSRFToken': getCSRFToken() },
+                data: JSON.stringify({
+                    sku: sku,
+                    shop_user_id: shop_user_id,
+                    quantity: quantity
+                }),
+                success: function () {
+                    console.log('Success')
+                    fetchItems(1);
+                    fetchItems(2);
+                    fetchItems(3);
+                },
+                error: function (xhr) {
+                    alert(xhr.responseJSON.detail);
+                }
+            });
+        }
+
+        function cancelTransfer(sku, shop_user_id, quantity) {
+            console.log(`Dispatch: sku: ${sku}, shop_user_id: ${shop_user_id}, quantity: ${quantity}`);
             // Add your code here
         }
 
-        function cancelTransfer(sku) {
-            console.log(`Cancel button clicked for SKU: ${sku}`);
-            // Add your code here
-        }
+
 
         function toggleUpdateMode() {
             const updateModeButton = $('#updateModeToggle');
@@ -491,15 +520,15 @@
             });
         }
 
-        function tailor_dashboard(groups) {
+        function tailor_dashboard(groups, username) {
             window.userGroups = groups;  // Store user groups globally
+            window.loggedInUsername = username;  // Store logged-in username globally
             if (groups && groups.includes("managers")) {
                 $(".shop-stock").hide();
                 $(".warehouse-stock").addClass("col-md-12");
                 $(".warehouse-stock").removeClass("col-md-6");
                 $("#addItemSection").removeClass("d-none");
                 $("#updateModeToggle").removeClass("d-none");
-                $("#transfersPendingSection").removeClass("d-none");
                 // Fetch the current edit_lock status from the server
                 $.ajax({
                     url: '/api/get_edit_lock_status/',
@@ -513,12 +542,20 @@
                 });
             } else {
                 $(".shop-stock").show();
+                if (groups.includes("shop_users")) {
+                    $("th:contains('Shop User')").hide();  // Hide the "Shop User" column header
+                    $("#itemTable3 tr").each(function () {
+                        $(this).find("td:first").hide();  // Hide the first column in each row
+                    });
+                }
             }
 
             // Remove 'Transfer Qnt' column header if user is not in shop_users group
             if (!groups.includes("shop_users")) {
                 $("th:contains('Transfer Qnt')").hide();
             }
+
+
         }
 
         function checkAuthStatus() {
@@ -529,7 +566,7 @@
                 success: function (data) {
                     if (data.username) {
                         $("#userStatus").text(`Logged in as: ${data.username}`);
-                        tailor_dashboard(data.groups)
+                        tailor_dashboard(data.groups, data.username);
                         $("#authLink").text("Logout").off("click").on("click", function (event) {
                             event.preventDefault();
                             $.ajax({
