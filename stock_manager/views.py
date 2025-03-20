@@ -19,6 +19,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.decorators import action
 import logging
 from django.views.decorators.csrf import csrf_exempt
+from django.db.models import Q
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ class ItemViewSet(viewsets.ModelViewSet):
         search_query = self.request.query_params.get("search", None)
         if search_query:
             queryset = queryset.filter(
-                description__icontains=search_query
+                Q(description__icontains=search_query) | Q(sku__icontains=search_query)
             )  # 🔍 Search filter
         ordering = self.request.query_params.get("ordering", None)
         if ordering:
@@ -75,7 +76,7 @@ class ShopItemViewSet(viewsets.ModelViewSet):
         search_query = self.request.query_params.get("search", None)
         if search_query:
             queryset = queryset.filter(
-                item__description__icontains=search_query
+                Q(item__description__icontains=search_query) | Q(item__sku__icontains=search_query)
             )  # 🔍 Search filter
         ordering = self.request.query_params.get("ordering", None)
         if ordering:
@@ -103,7 +104,9 @@ class TransferItemViewSet(viewsets.ModelViewSet):
             queryset = TransferItem.objects.filter(shop_user=user)
         search_query = self.request.query_params.get("search", None)
         if search_query:
-            queryset = queryset.filter(item__description__icontains=search_query)
+            queryset = queryset.filter(
+                Q(item__description__icontains=search_query) | Q(item__sku__icontains=search_query)
+            )  # 🔍 Search filter
         ordering = self.request.query_params.get("ordering", None)
         if ordering:
             if ordering.startswith("-"):
