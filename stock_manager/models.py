@@ -57,12 +57,11 @@ class Item(models.Model):
             else:
                 # transfer to ShopItem database
                 shop_user = User.objects.get(id=shop_user)
-                shop_item, created = ShopItem.objects.get_or_create(
-                    item=self,
-                    shop_user=shop_user,
-                )
-                # set quantity for ShopItem
-                shop_item.quantity += transfer_quantity
+                try:
+                    shop_item = ShopItem.objects.get(item=self, shop_user=shop_user)
+                    shop_item.quantity += transfer_quantity
+                except ShopItem.DoesNotExist:
+                    shop_item = ShopItem(item=self, shop_user=shop_user, quantity=transfer_quantity)
                 shop_item.save()
                 # change quantity recorded for stock Item in warehouse
                 self.quantity -= transfer_quantity
@@ -76,8 +75,8 @@ class ShopItem(models.Model):
         User, on_delete=models.CASCADE
     )  # Relates item to a User
     item = models.OneToOneField(
-        Item, primary_key=True, on_delete=models.CASCADE, default=1
-    )  # Relates ShopItem to Item with a default value
+        Item, primary_key=True, on_delete=models.CASCADE
+    )  # Relates ShopItem to Item without a default value
     quantity = models.IntegerField(default=0)
     last_updated = models.DateTimeField(auto_now=True)
 
@@ -90,8 +89,8 @@ class TransferItem(models.Model):
         User, on_delete=models.CASCADE
     )  # Relates item to a User
     item = models.ForeignKey(
-        Item, on_delete=models.CASCADE, default=1
-    )  # Relates ShopItem to Item with a default value
+        Item, on_delete=models.CASCADE
+    )  # Relates TransferItem to Item without a default value
     quantity = models.IntegerField(default=0)
     last_updated = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)

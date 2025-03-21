@@ -80,7 +80,7 @@
         .btn-info {
             background-color: var(--secondary-color);
             border-color: var(--secondary-color);
-            color: var(--primary-color);
+            color: var (--primary-color);
             border-radius: var(--border-radius);
         }
 
@@ -449,13 +449,13 @@
         }
 
         function updateItem(sku, tableNum) {
-            let price = $(`#retail_price${tableNum}-${sku}`).val();
+            let price = $(`#retail_price${tableNum}-${CSS.escape(sku)}`).val();
             if (!/^\d+(\.\d{1,2})?$/.test(price)) {
                 alert('Retail price must be a valid number with up to 2 decimal places.');
                 return;
             }
-            let qnt = $(`#quantity${tableNum}-${sku}`).val()
-            let desc = $(`#description${tableNum}-${sku}`).val()
+            let qnt = $(`#quantity${tableNum}-${CSS.escape(sku)}`).val();
+            let desc = $(`#description${tableNum}-${CSS.escape(sku)}`).val();
             let apiUrl = tableNum === 1 ? `/api/items/${sku}/` : `/api/shop_items/${sku}/`;
             $.ajax({
                 url: apiUrl,
@@ -487,7 +487,7 @@
         }
 
         function transferItem(sku) {
-            let transferQuantity = $(`#xfer_quantity1-${sku}`).val();
+            let transferQuantity = $(`#xfer_quantity1-${CSS.escape(sku)}`).val();
             $.ajax({
                 url: '/api/transfer/',
                 type: 'POST',
@@ -507,8 +507,6 @@
                 }
             });
         }
-
-
 
         function completeTransfer(sku, shop_user_id, quantity, cancel) {
             $.ajax({
@@ -542,9 +540,9 @@
                 // Save all changes before leaving update mode
                 $('#itemTable1 tr').each(function () {
                     const sku = $(this).find('td:first').text();
-                    const desc = $(`#description1-${sku}`).val();
-                    const price = $(`#retail_price1-${sku}`).val();
-                    const qnt = $(`#quantity1-${sku}`).val();
+                    const desc = $(`#description1-${CSS.escape(sku)}`).val();
+                    const price = $(`#retail_price1-${CSS.escape(sku)}`).val();
+                    const qnt = $(`#quantity1-${CSS.escape(sku)}`).val();
                     if (desc !== undefined && price !== undefined && qnt !== undefined) {
                         updateItem(sku, 1);
                     }
